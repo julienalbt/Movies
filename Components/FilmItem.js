@@ -5,6 +5,18 @@ import { StyleSheet, View, Text, Image, TouchableOpacity } from 'react-native'
 import { getImageFromAPI } from '../API/TMDBApi'
 
 class FilmItem extends React.Component {
+
+  _displayFavoriteImage() {
+    if(this.props.isFilmFavorite) {
+      return (
+      <Image
+        style={styles.favorite_image}
+        source={require ('../assets/images/favorite.png')}
+      />
+    )
+  }
+}
+
   render() {
     const { film, displayDetailForFilm } = this.props
     return (
@@ -15,8 +27,9 @@ class FilmItem extends React.Component {
         />
         <View style={styles.contentContainer}>
             <View style={styles.headerContainer}>
-                <Text style={styles.titleText}>{film.title}</Text>
-                <Text style={styles.noteText}>{film.vote_average}</Text>
+              {this._displayFavoriteImage()}
+              <Text style={styles.titleText}>{film.title}</Text>
+              <Text style={styles.noteText}>{film.vote_average}</Text>
             </View>
             <View style={styles.descriptionContainer}>
                 <Text style={styles.descText} numberOfLines={6}>{film.overview}</Text>
@@ -66,6 +79,10 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontSize: 26,
         color: '#fff'
+      },
+      favorite_image: {
+        width: 20,
+        height: 20
       },
       descriptionContainer: {
         flex: 7
