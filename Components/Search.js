@@ -1,10 +1,9 @@
 // Components/Search.js
 
 import React from 'react'
-import FilmItem from './FilmItem'
-import { StyleSheet ,View, TextInput, Button, FlatList, ActivityIndicator } from 'react-native'
-import { getFilmsFromApiWithSearchedText } from '../API/TMDBApi' // import { } from ... car c'est un export nommé dans TMDBApi.js
-import { connect } from 'react-redux'
+import { StyleSheet, View, TextInput, Button, Text, FlatList, ActivityIndicator } from 'react-native'
+import FilmList from './FilmList'
+import { getFilmsFromApiWithSearchedText } from '../API/TMDBApi'
 
 class Search extends React.Component {
 
@@ -13,87 +12,71 @@ class Search extends React.Component {
     this.searchedText = ""
     this.page = 0
     this.totalPages = 0
-    this.state = { films: [], isLoading: false }
+    this.state = {
+      films: [],
+      isLoading: false
+    }
+    this._loadFilms = this._loadFilms.bind(this) // fonction loadFilm bindé
   }
 
   _loadFilms() {
     if (this.searchedText.length > 0) {
-      this.setState({ isLoading: true }) // Lancement du chargement
+      this.setState({ isLoading: true })
       getFilmsFromApiWithSearchedText(this.searchedText, this.page+1).then(data => {
-        this.page = data.page
-        this.totalPages = data.total_pages
+          this.page = data.page
+          this.totalPages = data.total_pages
           this.setState({
             films: [ ...this.state.films, ...data.results ],
-            isLoading: false // Arrêt du chargement
+            isLoading: false
           })
       })
     }
-}
-
-_displayLoading() {
-  if (this.state.isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color="#fff"/>
-      </View>
-    )
   }
-}
 
-_searchFilms() {
-  this.page = 0
-  this.totalPages = 0
-  this.setState({
-    films: [], },
-    () => {
-  console.log("Page : " + this.page + " / TotalPages : " + this.totalPages + " / Nombre de films : " + this.state.films.length)
-  this._loadFilms()
-})
-}
+  _searchTextInputChanged(text) {
+    this.searchedText = text
+  }
 
-_searchTextInputChanged(text) {
-  this.searchedText = text
-}
+  _searchFilms() {
+    this.page = 0
+    this.totalPages = 0
+    this.setState({
+      films: [],
+    }, () => {
+        this._loadFilms()
+    })
+  }
 
-_displayDetailForFilm = (idFilm) => {
-  console.log("Display film with id : " + idFilm)
-  this.props.navigation.navigate("FilmDetail", { idFilm: idFilm })
-}
+  _displayLoading() {
+    if (this.state.isLoading) {
+      return (
+        <View style={styles.loading_container}>
+          <ActivityIndicator size='large' />
+        </View>
+      )
+    }
+  }
 
   render() {
-    console.log(this.state.isLoading)
     return (
       <View style={styles.mainContainer}>
-      <TextInput style={styles.textinput}
-      placeholder='Titre du film'
-      onChangeText={(text) => this._searchTextInputChanged(text)}
-      onSubmitEditing={() => this._searchFilms()}
-      />
-      <View style={styles.button}>
-        <Button style={{ height: 50 }} title='Rechercher'
-        onPress={() => this._searchFilms()}
+        <TextInput
+          style={styles.textinput}
+          placeholder='recherche un film...'
+          onChangeText={(text) => this._searchTextInputChanged(text)}
+          onSubmitEditing={() => this._searchFilms()}
         />
+        <Button style={{ height: 50 }} title='Rechercher' onPress={() => this._searchFilms()}/>
+        <FilmList
+          films={this.state.films} // C'est bien le component Search qui récupère les films depuis l'API et on les transmet ici pour que le component FilmList les affiche
+          navigation={this.props.navigation} // Ici on transmet les informations de navigation pour permettre au component FilmList de naviguer vers le détail d'un film
+          loadFilms={this._loadFilms} // _loadFilm charge les films suivants, ça concerne l'API, le component FilmList va juste appeler cette méthode quand l'utilisateur aura parcouru tous les films et c'est le component Search qui lui fournira les films suivants
+          page={this.page}
+          totalPages={this.totalPages} // les infos page et totalPages vont être utile, côté component FilmList, pour ne pas déclencher l'évènement pour charger plus de film si on a atteint la dernière page
+          favoriteList={false}
+        />
+        {this._displayLoading()}
       </View>
-      <FlatList
-        data={this.state.films}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({item}) =>
-        <FilmItem
-              film={item}
-              // Ajout d'une props isFilmFavorite pour indiquer à l'item d'afficher un 🖤 ou non
-              isFilmFavorite={(this.props.favoritesFilm.findIndex(film => film.id === item.id) !== -1) ? true : false}
-              displayDetailForFilm={this._displayDetailForFilm}
-            />
-          }
-        onEndReachedThreshold={1}
-        onEndReached={() => {
-          if(this.state.films.length > 0 && this.page < this.totalPages) {
-          this._loadFilms()
-          }
-        }}
-      />
-      {this._displayLoading()}
-    </View>
     )
   }
 }
@@ -125,11 +108,6 @@ const styles = StyleSheet.create({
     paddingLeft: 5,
     textAlign: 'center'
   },
-
-  button: {
-    marginBottom: 20
-  },
-
   loadingContainer: {
     position: 'absolute',
     left: 0,
@@ -142,10 +120,4 @@ const styles = StyleSheet.create({
 
 })
 
-const mapStateToProps = (state) => {
-  return {
-    favoritesFilm: state.favoritesFilm
-  }
-}
-
-export default connect(mapStateToProps)(Search)
+export default Search
